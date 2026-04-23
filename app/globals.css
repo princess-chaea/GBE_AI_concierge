@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+
+:root {
+  --gbe-blue: #004ea2;
+  --gbe-green: #009a44;
+  --gbe-orange: #f05a28;
+}
+
+body {
+  font-family: 'Pretendard', sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
