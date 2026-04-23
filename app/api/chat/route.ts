@@ -44,13 +44,50 @@ export async function POST(req: Request) {
   }
 }
 
-// 헬퍼 함수 예시 (실제 구현 시 API 키 필요)
+// 헬퍼 함수: Gemini 임베딩 생성 (Gemini Embedding 2 최신 가이드 적용)
 async function getGeminiEmbedding(text: string) {
-  // TODO: Implement actual Gemini Embedding API call
-  return new Array(768).fill(0); 
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  const model = "gemini-embedding-2";
+  
+  // RAG 질문용 접두사 추가 (최신 가이드 권장 사항)
+  const formattedText = `task: question answering | query: ${text}`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: { parts: [{ text: formattedText }] },
+        output_dimensionality: 768 // 차원 고정으로 효율성 증대
+      }),
+    }
+  );
+
+  const json = await response.json();
+  if (json.error) throw new Error(json.error.message);
+  
+  return json.embedding.values;
 }
 
+// 헬퍼 함수: Gemini 답변 생성 (사용자 요청에 따라 2.5-flash 적용)
 async function callGeminiGenerate(prompt: string) {
-  // TODO: Implement actual Gemini Generate Content API call
-  return "자료를 분석 중입니다... (API 키 설정 후 활성화)";
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  const model = "gemini-2.5-flash"; // 최신 2.5-flash 모델 적용
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      }),
+    }
+  );
+
+  const json = await response.json();
+  if (json.error) throw new Error(json.error.message);
+
+  return json.candidates[0].content.parts[0].text;
 }
