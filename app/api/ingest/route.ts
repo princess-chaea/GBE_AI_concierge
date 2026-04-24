@@ -72,6 +72,7 @@ export async function POST(req: Request) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 content: { parts: [{ text: chunk }] },
+                task_type: "RETRIEVAL_DOCUMENT", // 문서 저장용 모드임을 명시
                 output_dimensionality: 768
               }),
             }

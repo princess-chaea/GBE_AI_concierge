@@ -14,7 +14,8 @@ import {
   Calendar as CalendarIcon,
   Search,
   Trash2,
-  Tag
+  Tag,
+  Zap
 } from 'lucide-react';
 
 export default function AdminPage() {
