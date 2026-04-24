@@ -95,7 +95,7 @@ async function getGeminiEmbedding(text: string) {
 // 헬퍼 함수: Gemini 답변 생성 (사용자 요청에 따라 2.5-flash 적용)
 async function callGeminiGenerate(prompt: string) {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  const model = "gemini-2.5-flash"; // 최신 2.5-flash 모델 적용
+  const model = "gemini-2.5-flash"; // 사용자 확인에 따른 최신 2.5-flash 적용
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -109,7 +109,14 @@ async function callGeminiGenerate(prompt: string) {
   );
 
   const json = await response.json();
-  if (json.error) throw new Error(json.error.message);
+  if (json.error) {
+    console.error("[Gemini Error Body]:", json.error);
+    throw new Error(`Gemini API Error (${json.error.code}): ${json.error.message}`);
+  }
+
+  if (!json.candidates || json.candidates.length === 0) {
+    throw new Error("Gemini가 답변 후보를 생성하지 못했습니다. (차단되었거나 응답 없음)");
+  }
 
   return json.candidates[0].content.parts[0].text;
 }
