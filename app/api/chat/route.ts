@@ -10,14 +10,23 @@ export async function POST(req: Request) {
     // 여기서는 개념적 흐름을 보여줍니다.
     const queryEmbedding = await getGeminiEmbedding(message);
 
-    // 2. Supabase에서 유사한 문서 검색
-    const { data: documents, error } = await supabase.rpc('match_documents', {
+    // 2. Supabase에서 유사 문서 검색 (문턱값을 0.1로 낮추어 더 넓게 검색)
+    const { data: documents, error: searchError } = await supabase.rpc('match_documents', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.5,
-      match_count: 5,
+      match_threshold: 0.1, // 기준을 낮춤 (0.5 -> 0.1)
+      match_count: 5
     });
 
-    if (error) throw error;
+    if (searchError) throw searchError;
+
+    console.log(`[Chat] Found ${documents?.length || 0} relevant documents.`);
+    if (documents && documents.length > 0) {
+      console.log(`[Chat] Top match similarity: ${documents[0].similarity}`);
+    }
+
+    if (!documents || documents.length === 0) {
+      return NextResponse.json({ answer: "제공된 자료에서 관련 내용을 찾을 수 없습니다. (데이터베이스에 매칭되는 내용이 없습니다.)" });
+    }
 
     // 3. 검색된 문맥(Context) 생성
     const contextText = documents
