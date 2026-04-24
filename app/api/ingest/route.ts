@@ -78,12 +78,6 @@ export async function POST(req: Request) {
 
     if (error) throw error;
     console.log(`[Ingest] Step 3 Complete: Successfully stored ${fileName}`);
-      content: extractedText,
-      metadata: { title: fileName, originalMimeType: mimeType },
-      embedding: embedding
-    });
-
-    if (error) throw error;
 
     return NextResponse.json({ success: true, fileName });
   } catch (error: any) {
