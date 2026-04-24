@@ -1,33 +1,40 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
 
-    // 1. 질문을 임베딩 벡터로 변환 (Gemini API 호출 필요)
-    // 이 부분은 클라이언트나 서버에서 Gemini Embedding API를 사용하여 구현합니다.
-    // 여기서는 개념적 흐름을 보여줍니다.
-    const queryEmbedding = await getGeminiEmbedding(message);
+    if (!supabaseAdmin) {
+      throw new Error("Supabase Admin 클라이언트가 설정되지 않았습니다.");
+    }
 
-    // 2. Supabase에서 유사 문서 검색 (문턱값을 0.01로 낮추어 검색 범위 극대화)
-    const { data: documents, error: searchError } = await supabase.rpc('match_documents', {
+    // 1. 질문을 임베딩 벡터로 변환
+    const queryEmbedding = await getGeminiEmbedding(message);
+    console.log(`[Chat] Generated embedding. Length: ${queryEmbedding.length}`);
+
+    // 2. Supabase Admin으로 검색 (RLS 우회하여 확실하게 데이터 조회)
+    const { data: documents, error: searchError } = await supabaseAdmin.rpc('match_documents', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.01, // 무엇이라도 검색되도록 최저로 낮춤
+      match_threshold: -1.0, // 유사도 제한을 완전히 풀어서(마이너스) 무조건 결과를 가져오도록 함
       match_count: 5
     });
 
-    if (searchError) throw searchError;
+    if (searchError) {
+      console.error("[Chat] Search Error Details:", searchError);
+      return NextResponse.json({ 
+        answer: "데이터베이스 검색 중 오류가 발생했습니다.",
+        debug: { error: searchError, vectorLength: queryEmbedding.length }
+      });
+    }
 
     console.log(`[Chat] Found ${documents?.length || 0} relevant documents.`);
     
-    // 디버깅: 매칭된 문서와 점수 로그 출력
-    documents?.forEach((doc: any, i: number) => {
-      console.log(`  - Match ${i+1}: Similarity ${doc.similarity.toFixed(4)} | Title: ${doc.metadata?.title || 'Unknown'} | Content: ${doc.content.substring(0, 50)}...`);
-    });
-
     if (!documents || documents.length === 0) {
-      return NextResponse.json({ answer: "현재 학습된 데이터베이스에서 관련 정보를 찾을 수 없습니다. (검색된 내용 없음)" });
+      return NextResponse.json({ 
+        answer: "현재 학습된 데이터베이스에서 관련 정보를 찾을 수 없습니다. (검색 결과 0건)",
+        debug: { vectorLength: queryEmbedding.length }
+      });
     }
 
     // 3. 검색된 문맥(Context) 생성
