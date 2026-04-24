@@ -45,39 +45,57 @@ export async function POST(req: Request) {
     const extractJson = await extractResponse.json();
     if (extractJson.error) throw new Error(`Extraction Error: ${extractJson.error.message}`);
     const extractedText = extractJson.candidates[0].content.parts[0].text;
-    console.log(`[Ingest] Step 1 Complete: Text extracted (${extractedText.length} chars)`);
-
-    // 2. 추출된 텍스트 임베딩 생성 시작
-    console.log(`[Ingest] Step 2: Generating embeddings using Gemini Embedding 2...`);
-    const embedResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: { 
-            parts: [{ text: `title: ${fileName} | text: ${extractedText}` }] 
-          },
-          output_dimensionality: 768
-        }),
+    // 헬퍼 함수: 텍스트를 적절한 크기로 쪼개기
+    function chunkText(text: string, size: number = 1000) {
+      const chunks = [];
+      for (let i = 0; i < text.length; i += size) {
+        chunks.push(text.slice(i, i + size));
       }
-    );
+      return chunks;
+    }
 
-    const embedJson = await embedResponse.json();
-    if (embedJson.error) throw new Error(`Embedding Error: ${embedJson.error.message}`);
-    const embedding = embedJson.embedding.values;
-    console.log(`[Ingest] Step 2 Complete: Embedding generated`);
+    const textChunks = chunkText(extractedText);
+    console.log(`[Ingest] Step 1 Complete: Text extracted. Splitting into ${textChunks.length} chunks.`);
 
-    // 3. Supabase 저장 시작
-    console.log(`[Ingest] Step 3: Storing in Supabase...`);
-    const { error } = await supabaseAdmin.from('documents').insert({
-      content: extractedText,
-      metadata: { title: fileName, originalMimeType: mimeType },
-      embedding: embedding
-    });
+    let successCount = 0;
+    for (let i = 0; i < textChunks.length; i++) {
+      const chunk = textChunks[i];
+      console.log(`[Ingest] Step 2-${i+1}: Generating embedding for chunk...`);
+      
+      const embedResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: { 
+              parts: [{ text: `title: ${fileName} (Part ${i+1}) | text: ${chunk}` }] 
+            },
+            output_dimensionality: 768
+          }),
+        }
+      );
 
-    if (error) throw error;
-    console.log(`[Ingest] Step 3 Complete: Successfully stored ${fileName}`);
+      const embedJson = await embedResponse.json();
+      if (embedJson.error) continue;
+      const embedding = embedJson.embedding.values;
+
+      // 3. Supabase 저장
+      const { error: insertError } = await supabaseAdmin.from('documents').insert({
+        content: chunk,
+        metadata: { 
+          title: fileName, 
+          chunkIndex: i, 
+          totalChunks: textChunks.length,
+          originalMimeType: mimeType 
+        },
+        embedding: embedding
+      });
+
+      if (!insertError) successCount++;
+    }
+
+    console.log(`[Ingest] Step 3 Complete: Successfully stored ${successCount} chunks for ${fileName}`);
 
     return NextResponse.json({ success: true, fileName });
   } catch (error: any) {
