@@ -55,52 +55,75 @@ export async function POST(req: Request) {
     }
 
     const textChunks = chunkText(extractedText);
-    console.log(`[Ingest] Step 1 Complete: Text extracted. Parallel processing ${textChunks.length} chunks.`);
+    console.log(`[Ingest] Step 1 Complete: Text extracted. Processing ${textChunks.length} chunks in batches.`);
 
-    // 병렬 처리를 통해 속도 향상
-    const uploadPromises = textChunks.map(async (chunk, i) => {
-      try {
-        const embedResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: { 
-                parts: [{ text: chunk }] 
-              },
-              output_dimensionality: 768
-            }),
+    let successCount = 0;
+    const batchSize = 3; // 한 번에 3개씩만 병렬 처리 (API 제한 방지)
+
+    for (let i = 0; i < textChunks.length; i += batchSize) {
+      const batch = textChunks.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (chunk, index) => {
+        const chunkIdx = i + index;
+        try {
+          const embedResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content: { parts: [{ text: chunk }] },
+                output_dimensionality: 768
+              }),
+            }
+          );
+
+          const embedJson = await embedResponse.json();
+          if (embedJson.error) {
+            console.error(`[Ingest] Chunk ${chunkIdx} Error:`, embedJson.error.message);
+            return null;
           }
-        );
+          const embedding = embedJson.embedding.values;
 
-        const embedJson = await embedResponse.json();
-        if (embedJson.error) return null;
-        const embedding = embedJson.embedding.values;
+          return supabaseAdmin.from('documents').insert({
+            content: chunk,
+            metadata: { 
+              title: fileName, 
+              chunkIndex: chunkIdx, 
+              totalChunks: textChunks.length,
+              originalMimeType: mimeType 
+            },
+            embedding: embedding
+          });
+        } catch (err) {
+          console.error(`[Ingest] Error in chunk ${chunkIdx}:`, err);
+          return null;
+        }
+      });
 
-        return supabaseAdmin.from('documents').insert({
-          content: chunk,
-          metadata: { 
-            title: fileName, 
-            chunkIndex: i, 
-            totalChunks: textChunks.length,
-            originalMimeType: mimeType 
-          },
-          embedding: embedding
-        });
-      } catch (err) {
-        console.error(`[Ingest] Error in chunk ${i}:`, err);
-        return null;
+      const results = await Promise.all(batchPromises);
+      successCount += results.filter(r => r && !r.error).length;
+      
+      // 배치 사이의 짧은 휴식 (안정성 확보)
+      if (i + batchSize < textChunks.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-    });
-
-    const results = await Promise.all(uploadPromises);
-    const successCount = results.filter(r => r && !r.error).length;
+    }
 
     console.log(`[Ingest] Step 3 Complete: Successfully stored ${successCount}/${textChunks.length} chunks for ${fileName}`);
     return NextResponse.json({ success: true, fileName, chunks: successCount });
   } catch (error: any) {
     console.error('[Ingest Error]', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE() {
+  try {
+    const { error } = await supabaseAdmin.from('documents').delete().neq('id', 0); // 모든 행 삭제
+    if (error) throw error;
+    return NextResponse.json({ success: true, message: 'All documents deleted.' });
+  } catch (error: any) {
+    console.error('[Delete Error]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

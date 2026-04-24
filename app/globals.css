@@ -5,18 +5,61 @@
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
 
 :root {
-  --gbe-blue: #004ea2;
-  --gbe-green: #009a44;
-  --gbe-orange: #f05a28;
+  --gbe-blue: #0066FF;
+  --gbe-blue-dark: #0044CC;
+  --gbe-green: #00D26A;
+  --gbe-bg: #F8FAFC;
+  --gbe-card: #FFFFFF;
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.4);
 }
 
-body {
-  font-family: 'Pretendard', sans-serif;
-  background-color: #f8fafc;
-  color: #1e293b;
+.dark {
+  --gbe-bg: #0F172A;
+  --gbe-card: #1E293B;
+  --glass: rgba(15, 23, 42, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
-.modal-overlay {
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+@layer base {
+  body {
+    font-family: 'Pretendard', sans-serif;
+    @apply bg-[var(--gbe-bg)] text-slate-900 transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500;
+  }
+
+  .floating-button {
+    @apply shadow-lg hover:shadow-blue-200 hover:-translate-y-1 transition-all duration-300;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out forwards;
 }

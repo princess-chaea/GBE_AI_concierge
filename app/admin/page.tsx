@@ -122,14 +122,38 @@ export default function AdminPage() {
               <p className="text-gray-500">학교 행정 문서를 업로드하고 AI를 동기화합니다.</p>
             </div>
           </div>
-          <button
-            onClick={handleSync}
-            disabled={status === 'loading'}
-            className="flex items-center space-x-2 px-6 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm font-medium text-gray-700"
-          >
-            <RefreshCw className={`w-4 h-4 ${status === 'loading' ? 'animate-spin' : ''}`} />
-            <span>서버 폴더 동기화</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSync}
+              disabled={status === 'loading'}
+              className="flex items-center space-x-2 px-6 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm font-medium text-gray-700"
+            >
+              <RefreshCw className={`w-4 h-4 ${status === 'loading' ? 'animate-spin' : ''}`} />
+              <span>서버 폴더 동기화</span>
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm('모든 학습 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                  setStatus('loading');
+                  try {
+                    const res = await fetch('/api/ingest', { method: 'DELETE' });
+                    if (res.ok) {
+                      setStatus('success');
+                      setMessage('모든 데이터를 삭제했습니다. 이제 깨끗하게 다시 학습시켜 보세요!');
+                    }
+                  } catch (err) {
+                    setStatus('error');
+                    setMessage('삭제 중 오류가 발생했습니다.');
+                  }
+                }
+              }}
+              disabled={status === 'loading'}
+              className="flex items-center space-x-2 px-6 py-3 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-all shadow-sm font-medium text-red-600"
+            >
+              <X className="w-4 h-4" />
+              <span>데이터 전체 삭제</span>
+            </button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
