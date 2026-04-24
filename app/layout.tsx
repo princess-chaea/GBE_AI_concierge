@@ -31,11 +31,14 @@ export default function RootLayout({
         <div className="flex h-screen bg-slate-50 overflow-hidden">
           {/* Sidebar Navigation */}
           <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
-            <div className="p-6 flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-100">
-                <Zap className="text-white w-5 h-5" />
+            <div className="p-6 flex flex-col space-y-2">
+              <div className="flex items-center space-x-3">
+                <img src="/gbe_symbol.jpg" alt="GBE Symbol" className="w-10 h-10 object-contain rounded-lg" />
+                <span className="text-xl font-bold tracking-tighter text-slate-900">이지플로우</span>
               </div>
-              <span className="text-lg font-bold tracking-tight text-slate-800">EasyFlow AI</span>
+              <div className="px-1">
+                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest leading-none">GBE AI Concierge</span>
+              </div>
             </div>
 
             <nav className="flex-1 px-4 py-4 space-y-1">
@@ -60,7 +63,7 @@ export default function RootLayout({
               <SidebarItem 
                 href="/chat" 
                 icon={<MessageSquare size={20} />} 
-                label="AI 컨시어지" 
+                label="업무상담 챗봇" 
                 active={pathname === '/chat'} 
               />
               <SidebarItem 
@@ -85,10 +88,11 @@ export default function RootLayout({
               />
             </nav>
 
-            <div className="p-4 bg-slate-50 mx-4 mb-8 rounded-xl border border-slate-100">
+            <div className="p-6 mt-auto border-t border-slate-50 flex flex-col items-center space-y-4">
+              <img src="/gbe_signature.png" alt="GBE Signature" className="w-40 opacity-80 grayscale hover:grayscale-0 transition-all" />
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tighter">AI Online</span>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AI Agent Online</span>
               </div>
             </div>
           </aside>

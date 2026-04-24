@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
-    const { fileName, fileData, mimeType } = await req.json();
+    const { fileName, fileData, mimeType, metadata: requestMetadata } = await req.json();
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -90,7 +90,8 @@ export async function POST(req: Request) {
               title: fileName, 
               chunkIndex: chunkIdx, 
               totalChunks: textChunks.length,
-              originalMimeType: mimeType 
+              originalMimeType: mimeType,
+              ...requestMetadata // 연도, 부서 등 추가 정보 포함
             },
             embedding: embedding
           });

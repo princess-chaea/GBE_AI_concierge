@@ -20,8 +20,11 @@ export default function DashboardPage() {
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">AI 교무 Cockpit 🚀</h1>
-          <p className="text-lg text-slate-500 font-medium">선생님의 오늘 업무를 AI가 미리 분석해 보았습니다.</p>
+          <div className="flex items-center space-x-2 mb-2">
+            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">이지플로우</h1>
+            <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Cockpit</span>
+          </div>
+          <p className="text-lg text-slate-500 font-medium">GBE AI Concierge — 선생님의 업무를 지능적으로 보조합니다.</p>
         </div>
         <div className="flex items-center space-x-3">
           <button className="flex items-center space-x-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-sm">

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, Info } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
@@ -57,6 +58,20 @@ export default function ChatPage() {
                   : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
               }`}>
                 {msg.content}
+                
+                {msg.role === 'assistant' && i > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <button className="text-[10px] text-slate-400 hover:text-blue-600 font-bold">도움됨</button>
+                      <button className="text-[10px] text-slate-400 hover:text-red-500 font-bold">부족함</button>
+                    </div>
+                    <Link href="/counseling">
+                      <button className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold hover:bg-blue-100 transition-colors">
+                        인생도서관 담당자에게 질문하기
+                      </button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
