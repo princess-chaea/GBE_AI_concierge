@@ -55,49 +55,50 @@ export async function POST(req: Request) {
     }
 
     const textChunks = chunkText(extractedText);
-    console.log(`[Ingest] Step 1 Complete: Text extracted. Splitting into ${textChunks.length} chunks.`);
+    console.log(`[Ingest] Step 1 Complete: Text extracted. Parallel processing ${textChunks.length} chunks.`);
 
-    let successCount = 0;
-    for (let i = 0; i < textChunks.length; i++) {
-      const chunk = textChunks[i];
-      console.log(`[Ingest] Step 2-${i+1}: Generating embedding for chunk...`);
-      
-      const embedResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: { 
-              parts: [{ text: `title: ${fileName} (Part ${i+1}) | text: ${chunk}` }] 
-            },
-            output_dimensionality: 768
-          }),
-        }
-      );
+    // 병렬 처리를 통해 속도 향상
+    const uploadPromises = textChunks.map(async (chunk, i) => {
+      try {
+        const embedResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: { 
+                parts: [{ text: chunk }] 
+              },
+              output_dimensionality: 768
+            }),
+          }
+        );
 
-      const embedJson = await embedResponse.json();
-      if (embedJson.error) continue;
-      const embedding = embedJson.embedding.values;
+        const embedJson = await embedResponse.json();
+        if (embedJson.error) return null;
+        const embedding = embedJson.embedding.values;
 
-      // 3. Supabase 저장
-      const { error: insertError } = await supabaseAdmin.from('documents').insert({
-        content: chunk,
-        metadata: { 
-          title: fileName, 
-          chunkIndex: i, 
-          totalChunks: textChunks.length,
-          originalMimeType: mimeType 
-        },
-        embedding: embedding
-      });
+        return supabaseAdmin.from('documents').insert({
+          content: chunk,
+          metadata: { 
+            title: fileName, 
+            chunkIndex: i, 
+            totalChunks: textChunks.length,
+            originalMimeType: mimeType 
+          },
+          embedding: embedding
+        });
+      } catch (err) {
+        console.error(`[Ingest] Error in chunk ${i}:`, err);
+        return null;
+      }
+    });
 
-      if (!insertError) successCount++;
-    }
+    const results = await Promise.all(uploadPromises);
+    const successCount = results.filter(r => r && !r.error).length;
 
-    console.log(`[Ingest] Step 3 Complete: Successfully stored ${successCount} chunks for ${fileName}`);
-
-    return NextResponse.json({ success: true, fileName });
+    console.log(`[Ingest] Step 3 Complete: Successfully stored ${successCount}/${textChunks.length} chunks for ${fileName}`);
+    return NextResponse.json({ success: true, fileName, chunks: successCount });
   } catch (error: any) {
     console.error('[Ingest Error]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

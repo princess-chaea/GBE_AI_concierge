@@ -53,13 +53,12 @@ export async function POST(req: Request) {
   }
 }
 
-// 헬퍼 함수: Gemini 임베딩 생성 (Gemini Embedding 2 최신 가이드 적용)
+// 헬퍼 함수: Gemini 임베딩 생성 (형식을 단순화하여 정확도 향상)
 async function getGeminiEmbedding(text: string) {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
   const model = "gemini-embedding-2";
   
-  // RAG 질문용 접두사 추가 (최신 가이드 권장 사항)
-  const formattedText = `task: question answering | query: ${text}`;
+  console.log(`[Chat] Getting embedding for: "${text.substring(0, 20)}..."`);
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${apiKey}`,
@@ -67,8 +66,8 @@ async function getGeminiEmbedding(text: string) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        content: { parts: [{ text: formattedText }] },
-        output_dimensionality: 768 // 차원 고정으로 효율성 증대
+        content: { parts: [{ text: text }] }, // 접두사 없이 순수 텍스트만 전달
+        output_dimensionality: 768
       }),
     }
   );
