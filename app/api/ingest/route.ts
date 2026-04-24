@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
@@ -49,8 +49,8 @@ export async function POST(req: Request) {
     if (embedJson.error) throw new Error(embedJson.error.message);
     const embedding = embedJson.embedding.values;
 
-    // 3. Supabase에 원본 텍스트와 임베딩 저장
-    const { error } = await supabase.from('documents').insert({
+    // 3. Supabase에 원본 텍스트와 임베딩 저장 (Admin 클라이언트 사용으로 RLS 우회)
+    const { error } = await supabaseAdmin.from('documents').insert({
       content: extractedText,
       metadata: { title: fileName, originalMimeType: mimeType },
       embedding: embedding
